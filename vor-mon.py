@@ -37,9 +37,14 @@ VERSION
 import sys, os, traceback, argparse
 import time
 
+def version():
+  print('vor-mon.py -- 0.0.1')
+  return 0
+
 def main (options):
   # TODO: Do something more interesting here...
   print('Hello world!')
+  return 0
 
 if __name__ == '__main__':
   try:
@@ -52,6 +57,7 @@ if __name__ == '__main__':
     if len(sys.argv) < 1: parser.error ('missing argument')
     if options.verbose: print(time.asctime())
     if options.version == False: funcReturn=main(options)
+    if options.version == True: funcReturn=version()
     if options.verbose: print(time.asctime())
     if options.verbose: print('TOTAL TIME IN MINUTES:')
     if options.verbose: print((time.time() - start_time) / 60.0)
