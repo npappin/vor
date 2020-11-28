@@ -35,7 +35,16 @@ VERSION
 """
 
 import sys, os, traceback, argparse
-import time
+import time, asyncio, pprint, random
+
+
+async def worker(name, queue):
+    while True:
+        test = await queue.get()
+        pprint.pprint(f'{test:.2f}')
+        await asyncio.sleep(test)
+        queue.task_done()
+        print(f'{name} has slept for {test:.2f} seconds')
 
 
 def version():
@@ -43,8 +52,27 @@ def version():
     return 0
 
 
-def main(options):
+async def main(options):
     # TODO: Do something more interesting here...
+    queue = asyncio.Queue()
+    total_sleep_time = 0
+    for _ in range(20):
+        sleep_for = random.gauss(1, .5)
+        total_sleep_time += sleep_for
+        queue.put_nowait(sleep_for)
+    tasks = []
+    for i in range(3):
+        task = asyncio.create_task(worker(f'worker-{i}', queue))
+        tasks.append(task)
+    started_at = time.monotonic()
+    await queue.join()
+    total_slept_for = time.monotonic() - started_at
+    for task in tasks:
+        task.cancel()
+    await asyncio.gather(*tasks, return_exceptions=True)
+    print('====')
+    print(f'3 workers slept in parallel for {total_slept_for:.2f} seconds')
+    print(f'total expected sleep time: {total_sleep_time:.2f} seconds')
     print("Hello world!")
     return 0
 
@@ -73,15 +101,16 @@ if __name__ == "__main__":
         if options.verbose:
             print(time.asctime())
         if options.version == False:
-            funcReturn = main(options)
+            #funcReturn = main(options)
+            funcReturn = asyncio.run(main(options))
         if options.version == True:
             funcReturn = version()
         if options.verbose:
             print(time.asctime())
         if options.verbose:
-            print("TOTAL TIME IN MINUTES:")
+            print("TOTAL TIME IN SECONDS:")
         if options.verbose:
-            print((time.time() - start_time) / 60.0)
+            print((time.time() - start_time))
         sys.exit(funcReturn)
     except KeyboardInterrupt as e:  # Ctrl-C
         raise e
